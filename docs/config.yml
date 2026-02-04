@@ -38,6 +38,15 @@ prometheus:
   # Then configure a scraper in prometheus.yml with the hostname and port of the host running envoy-logger
   listening_port: 1234
 
+# Polling intervals (in seconds)
+# interval: how often to poll power data (default: 60)
+#   Community recommends no faster than once per minute for /production.json
+# inverter_interval: how often to poll inverter data (default: 300)
+#   Inverters self-report every ~1-5 min; the endpoint is slow and unreliable
+polling:
+  interval: 60
+  inverter_interval: 300
+
 # Inverter metadata auto-generated from Enlighten array layout API.
 # Tags: array (A/B/C), face (rear/front), location (rear/front-left/front-right),
 #        x/y (global coordinates for spatial visualization)

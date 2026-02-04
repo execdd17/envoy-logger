@@ -36,6 +36,8 @@ class TestInfluxdbSamplingEngine(unittest.TestCase):
         mock_config.influxdb_bucket_lr = "foobar_lr"
         mock_config.source_tag = "envoy"
         mock_config.inverters = {"foo": {}, "bar": {}}
+        mock_config.polling_interval = 60
+        mock_config.inverter_polling_interval = 300
 
         test_sample_data = SampleData.create(sample_data=create_sample_data())
         test_inverter_data = parse_inverter_data([create_inverter_data("foobarA")])
@@ -76,6 +78,8 @@ class TestInfluxdbSamplingEngine(unittest.TestCase):
         mock_config.influxdb_bucket_lr = "foobar_lr"
         mock_config.source_tag = "envoy"
         mock_config.inverters = {"foo": {}, "bar": {}}
+        mock_config.polling_interval = 60
+        mock_config.inverter_polling_interval = 300
 
         test_sample_data = SampleData.create(
             sample_data=create_production_only_sample_data()
@@ -100,6 +104,27 @@ class TestInfluxdbSamplingEngine(unittest.TestCase):
         # This has to be called directly since the date calculations in _low_rate_points prohibit us
         # from hitting it indirectly
         sampling_engine._compute_daily_Wh_points(date.today())
+
+    def test_custom_polling_intervals(
+        self,
+        mock_config,
+        mock_envoy,
+        mock_influxdb_client,
+        mock_query_api,
+    ):
+        """Test that custom polling intervals from config are used"""
+        mock_config.influxdb_bucket_hr = "foobar_hr"
+        mock_config.influxdb_bucket_lr = "foobar_lr"
+        mock_config.source_tag = "envoy"
+        mock_config.inverters = {}
+        mock_config.polling_interval = 30
+        mock_config.inverter_polling_interval = 120
+
+        sampling_engine = InfluxdbSamplingEngine(envoy=mock_envoy, config=mock_config)
+
+        # Verify that the custom intervals are set
+        self.assertEqual(sampling_engine.interval_seconds, 30)
+        self.assertEqual(sampling_engine.inverter_interval_seconds, 120)
 
 
 if __name__ == "__main__":

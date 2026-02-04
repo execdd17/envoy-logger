@@ -14,8 +14,12 @@ LOG = logging.getLogger("influxdb_sampling_engine")
 
 
 class InfluxdbSamplingEngine(SamplingEngine):
-    def __init__(self, envoy: Envoy, config: Config, interval_seconds: int = 5) -> None:
-        super().__init__(envoy=envoy, interval_seconds=interval_seconds)
+    def __init__(self, envoy: Envoy, config: Config) -> None:
+        super().__init__(
+            envoy=envoy,
+            interval_seconds=config.polling_interval,
+            inverter_interval_seconds=config.inverter_polling_interval,
+        )
 
         self.config = config
 
