@@ -45,6 +45,10 @@ class Config:
             self.influxdb_bucket_lr: str = bucket_lr or bucket
             self.influxdb_bucket_hr: str = bucket_hr or bucket
 
+            polling = data.get("polling", {})
+            self.polling_interval: int = polling.get("interval", 60)
+            self.inverter_polling_interval: int = polling.get("inverter_interval", 300)
+
             self.inverters: Dict[str, InverterConfig] = {}
             for serial, inverter_data in data.get("inverters", {}).items():
                 serial = str(serial)
