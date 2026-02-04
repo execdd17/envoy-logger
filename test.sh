@@ -6,7 +6,7 @@ poetry run black --check envoy_logger tests
 poetry run isort --check envoy_logger tests
 poetry run flake8 envoy_logger tests
 poetry run yamllint -c .yamllint .
-poetry run mdformat --check .
+poetry run mdformat --check ./*.md docs/
 
 poetry run coverage run -m pytest -s
 poetry run coverage report -m

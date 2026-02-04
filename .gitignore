@@ -14,3 +14,4 @@ dist/
 *.egg-info/
 .eggs/
 envoy_logger.yml
+.env

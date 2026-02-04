@@ -1,4 +1,5 @@
 import logging
+import os
 import sys
 from typing import Any, Dict, Optional
 
@@ -11,8 +12,12 @@ LOG = logging.getLogger("config")
 class Config:
     def __init__(self, data: Dict[str, Any], database: str) -> None:
         try:
-            self.enphase_email: str = data["enphaseenergy"]["email"]
-            self.enphase_password: str = data["enphaseenergy"]["password"]
+            self.enphase_email: str = os.environ.get(
+                "ENPHASE_EMAIL", data["enphaseenergy"]["email"]
+            )
+            self.enphase_password: str = os.environ.get(
+                "ENPHASE_PASSWORD", data["enphaseenergy"]["password"]
+            )
 
             self.envoy_serial = str(data["envoy"]["serial"])
             self.envoy_url: str = data["envoy"].get("url", "https://envoy.local")
@@ -21,7 +26,9 @@ class Config:
             match database:
                 case "influxdb":
                     self.influxdb_url: str = data["influxdb"]["url"]
-                    self.influxdb_token: str = data["influxdb"]["token"]
+                    self.influxdb_token: str = os.environ.get(
+                        "INFLUXDB_TOKEN", data["influxdb"]["token"]
+                    )
                     self.influxdb_org: str = data["influxdb"].get("org", "home")
                 case "prometheus":
                     self.prometheus_listening_port: int = data["prometheus"][
