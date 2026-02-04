@@ -4,14 +4,14 @@
 
 # Your login info for enphaseenergy.com
 enphaseenergy:
-  email: name@example.com
-  password: mypassword123
+  email: your-email@example.com
+  password: your-enphase-password
 
 # Information about your specific Envoy instance.
 # https://enlighten.enphaseenergy.com will report the serial number under the "IQ-Gateway" information
 envoy:
-  serial: 123456789012
-  url: https://envoy.local
+  serial: 482537073156
+  url: https://192.168.30.42
 
   # Give your envoy a name.
   # All points logged will be tagged with "source=<tag>"
@@ -21,7 +21,7 @@ envoy:
 # How to access InfluxDB
 influxdb:
   url: http://localhost:8086
-  token: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+  token: your-influxdb-token
   org: home
 
   # Which InfluxDB bucket to send measurements.
@@ -38,30 +38,222 @@ prometheus:
   # Then configure a scraper in prometheus.yml with the hostname and port of the host running envoy-logger
   listening_port: 1234
 
-# Since the Envoy only tracks panel-level inverter production by serial number,
-# it can be useful to provide InfluxDB measurements with additional tags that
-# further describe your panels. This is completely optional, but can be useful
-# metadata for your dashboard.
-# You can figure out which inverter is which by logging into https://enlighten.enphaseenergy.com/
-# and viewing: https://enlighten.enphaseenergy.com/pv/systems/<account number>/array_layout_x.json
-# This will contain the X/Y coordinates of each inverter/panel.
-# Since my layout is pretty simple, I chose to tag them with simple row/column numbers.
-# Up to you to define a labeling scheme that works for you.
+# Inverter metadata auto-generated from Enlighten array layout API.
+# Tags: array (A/B/C), face (rear/front), location (rear/front-left/front-right),
+#        x/y (global coordinates for spatial visualization)
 inverters:
-  # This is the inverter's serial number. NOT the inverter ID, module ID, or SKU as displayed in some places
-  "202212345600":
+  # Array A - Rear (18 panels, azimuth 233° SW-facing)
+  "542544002367":
     tags:
-      row: 1
-      col: 1
-  "202212345601":
+      array: A
+      face: rear
+      location: rear
+      x: 1000
+      y: 666
+  "542544003322":
     tags:
-      row: 1
-      col: 2
-  "202212345602":
+      array: A
+      face: rear
+      location: rear
+      x: 900
+      y: 666
+  "542544003447":
     tags:
-      row: 2
-      col: 1
-  "202212345603":
+      array: A
+      face: rear
+      location: rear
+      x: 800
+      y: 666
+  "542544002221":
     tags:
-      row: 2
-      col: 2
+      array: A
+      face: rear
+      location: rear
+      x: 700
+      y: 666
+  "542544003240":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 600
+      y: 666
+  "542544003215":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 501
+      y: 666
+  "542544005196":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 401
+      y: 666
+  "542544002363":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 301
+      y: 666
+  "542544005186":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 201
+      y: 666
+  "542544003201":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 101
+      y: 666
+  "542544002351":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 950
+      y: 466
+  "542544002231":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 850
+      y: 466
+  "542544003255":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 750
+      y: 466
+  "542544003249":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 650
+      y: 466
+  "542544003220":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 501
+      y: 466
+  "542544002319":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 301
+      y: 466
+  "542544002361":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 201
+      y: 466
+  "542544003979":
+    tags:
+      array: A
+      face: rear
+      location: rear
+      x: 251
+      y: 316
+
+  # Array B - Front-left (6 panels, azimuth 53° NE-facing)
+  "542544003430":
+    tags:
+      array: B
+      face: front
+      location: front-left
+      x: 1190
+      y: 490
+  "542544003328":
+    tags:
+      array: B
+      face: front
+      location: front-left
+      x: 1290
+      y: 290
+  "542544003267":
+    tags:
+      array: B
+      face: front
+      location: front-left
+      x: 1190
+      y: 290
+  "542544003453":
+    tags:
+      array: B
+      face: front
+      location: front-left
+      x: 1390
+      y: 91
+  "542544003324":
+    tags:
+      array: B
+      face: front
+      location: front-left
+      x: 1290
+      y: 91
+  "542544002575":
+    tags:
+      array: B
+      face: front
+      location: front-left
+      x: 1190
+      y: 91
+
+  # Array C - Front-right (6 panels, azimuth 53° NE-facing)
+  "542544002035":
+    tags:
+      array: C
+      face: front
+      location: front-right
+      x: 773
+      y: 117
+  "542544003570":
+    tags:
+      array: C
+      face: front
+      location: front-right
+      x: 972
+      y: 118
+  "542544003797":
+    tags:
+      array: C
+      face: front
+      location: front-right
+      x: 873
+      y: 118
+  "542544003195":
+    tags:
+      array: C
+      face: front
+      location: front-right
+      x: 1072
+      y: -82
+  "542544003323":
+    tags:
+      array: C
+      face: front
+      location: front-right
+      x: 972
+      y: -82
+  "542544002227":
+    tags:
+      array: C
+      face: front
+      location: front-right
+      x: 873
+      y: -82
