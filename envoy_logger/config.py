@@ -49,6 +49,19 @@ class Config:
             self.polling_interval: int = polling.get("interval", 60)
             self.inverter_polling_interval: int = polling.get("inverter_interval", 300)
 
+            # Validate polling intervals
+            if self.polling_interval <= 0:
+                LOG.error(
+                    "polling.interval must be positive, got %d", self.polling_interval
+                )
+                sys.exit(1)
+            if self.inverter_polling_interval <= 0:
+                LOG.error(
+                    "polling.inverter_interval must be positive, got %d",
+                    self.inverter_polling_interval,
+                )
+                sys.exit(1)
+
             self.inverters: Dict[str, InverterConfig] = {}
             for serial, inverter_data in data.get("inverters", {}).items():
                 serial = str(serial)

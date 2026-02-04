@@ -192,10 +192,14 @@ def filter_new_inverter_data(
 ) -> Dict[str, InverterSample]:
     """
     Inverter measurements only update if inverter actually sends a reported value.
+    If last_sample_timestamp is None, return all inverter data.
     """
+    if last_sample_timestamp is None:
+        return inverter_data
+
     filtered_inverter_data: Dict[str, InverterSample] = {}
     for serial, inverter_sample in inverter_data.items():
-        if last_sample_timestamp and inverter_sample.ts > last_sample_timestamp:
+        if inverter_sample.ts > last_sample_timestamp:
             filtered_inverter_data[serial] = inverter_sample
 
     return filtered_inverter_data

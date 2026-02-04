@@ -35,7 +35,14 @@ class SamplingEngine(ABC):
         # Determine how long until the next sample needs to be taken
         now = datetime.now(tz=timezone.utc)
 
-        time_to_next = self.interval_seconds - (now.timestamp() % self.interval_seconds)
+        remainder = now.timestamp() % self.interval_seconds
+
+        # If we're exactly on a boundary (remainder == 0) or very close to it,
+        # wait a minimal amount to avoid waiting a full interval unnecessarily
+        if remainder < 0.1:
+            time_to_next = 0.1  # Small delay to avoid tight loop
+        else:
+            time_to_next = self.interval_seconds - remainder
 
         try:
             time.sleep(time_to_next)
@@ -46,7 +53,9 @@ class SamplingEngine(ABC):
     def _should_poll_inverters(self) -> bool:
         if self.last_inverter_poll is None:
             return True
-        elapsed = (datetime.now(tz=timezone.utc) - self.last_inverter_poll).total_seconds()
+        elapsed = (
+            datetime.now(tz=timezone.utc) - self.last_inverter_poll
+        ).total_seconds()
         return elapsed >= self.inverter_interval_seconds
 
     def collect_samples_with_retry(
