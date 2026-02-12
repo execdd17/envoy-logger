@@ -14,6 +14,8 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s [%(name)s]: %(message)s",
 )
 
+LOG = logging.getLogger(__name__)
+
 
 def parse_args(argv: Optional[List[str]] = None) -> Namespace:
     parser = ArgumentParser()
@@ -48,6 +50,40 @@ def main(argv: Optional[List[str]] = None) -> None:
     )
 
     envoy = Envoy(url=config.envoy_url, enphase_energy=enphase_energy)
+
+    # Log runtime parameters and env before starting the sampling loop
+    LOG.info("CLI args: config=%s, db=%s", args.config.name, args.db)
+    LOG.info(
+        "Env: ENVOY_LOGGER_CFG_PATH=%s, ENVOY_LOGGER_DB=%s, LOG_LEVEL=%s",
+        os.environ.get("ENVOY_LOGGER_CFG_PATH", "(not set)"),
+        os.environ.get("ENVOY_LOGGER_DB", "(not set)"),
+        os.environ.get("LOG_LEVEL", "(not set)"),
+    )
+    LOG.info(
+        "Env (secrets): ENPHASE_EMAIL=%s, ENPHASE_PASSWORD=%s, INFLUXDB_TOKEN=%s",
+        "set" if os.environ.get("ENPHASE_EMAIL") else "not set",
+        "set" if os.environ.get("ENPHASE_PASSWORD") else "not set",
+        "set" if os.environ.get("INFLUXDB_TOKEN") else "not set",
+    )
+    LOG.info(
+        "Runtime: envoy_url=%s, envoy_serial=%s, source_tag=%s, "
+        "polling_interval=%ds, inverter_interval=%ds",
+        config.envoy_url,
+        config.envoy_serial,
+        config.source_tag,
+        config.polling_interval,
+        config.inverter_polling_interval,
+    )
+    if args.db == "influxdb":
+        LOG.info(
+            "InfluxDB: url=%s, org=%s, bucket_hr=%s, bucket_lr=%s",
+            config.influxdb_url,
+            config.influxdb_org,
+            config.influxdb_bucket_hr,
+            config.influxdb_bucket_lr,
+        )
+    elif args.db == "prometheus":
+        LOG.info("Prometheus: listening_port=%s", config.prometheus_listening_port)
 
     match args.db:
         case "influxdb":

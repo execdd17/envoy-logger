@@ -36,6 +36,11 @@ class InfluxdbSamplingEngine(SamplingEngine):
         self.todays_date = date.today()
 
     def run(self) -> None:
+        LOG.info(
+            "Sampling started (InfluxDB): power interval=%ds, inverter interval=%ds",
+            self.interval_seconds,
+            self.inverter_interval_seconds,
+        )
         while True:
             self.wait_for_next_cycle()
             self._collect_samples()
