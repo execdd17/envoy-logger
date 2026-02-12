@@ -18,7 +18,8 @@ class TestSamplingEngine(unittest.TestCase):
     def test_collect_samples_with_retry(self, mock_envoy):
         mock_sample_data = mock.Mock(SampleData)
         mock_inverter_sample = mock.Mock(InverterSample)
-        mock_inverter_sample.ts = datetime.now(tz=timezone.utc)
+        # ts must be > last_sample_timestamp (set in collect_samples_with_retry after power poll)
+        mock_inverter_sample.ts = datetime.now(tz=timezone.utc) + timedelta(seconds=60)
 
         mock_inverter_data = {"foobar": mock_inverter_sample}
 
@@ -43,12 +44,31 @@ class TestSamplingEngine(unittest.TestCase):
         with self.assertRaises(TimeoutError) as ex:
             sampling_engine.collect_samples_with_retry(retries=3, wait_seconds=0.1)
 
-        self.assertEqual(str(ex.exception), "Sample collection timed out.")
+        self.assertEqual(str(ex.exception), "Power sample collection timed out.")
+
+    def test_collect_samples_with_retry_inverter_failure_returns_empty(
+        self, mock_envoy
+    ):
+        """Inverter poll has no retries; on failure we log and return empty inverter data."""
+        mock_sample_data = mock.Mock(SampleData)
+        mock_envoy.get_power_data.return_value = mock_sample_data
+        mock_envoy.get_inverter_data.side_effect = ConnectTimeout("inverter timeout")
+
+        sampling_engine = SamplingEngineChildClass(envoy=mock_envoy)
+
+        sample_data, inverter_data = sampling_engine.collect_samples_with_retry(
+            retries=3, wait_seconds=0.1
+        )
+
+        self.assertEqual(sample_data, mock_sample_data)
+        self.assertEqual(inverter_data, {})
+        # last_inverter_poll unchanged on failure, so we try again next cycle
+        self.assertIsNone(sampling_engine.last_inverter_poll)
 
     def test_inverter_interval_skips_when_not_elapsed(self, mock_envoy):
         mock_sample_data = mock.Mock(SampleData)
         mock_inverter_sample = mock.Mock(InverterSample)
-        mock_inverter_sample.ts = datetime.now(tz=timezone.utc)
+        mock_inverter_sample.ts = datetime.now(tz=timezone.utc) + timedelta(seconds=60)
         mock_inverter_data = {"foobar": mock_inverter_sample}
 
         mock_envoy.get_power_data.return_value = mock_sample_data
@@ -72,7 +92,7 @@ class TestSamplingEngine(unittest.TestCase):
     def test_inverter_interval_polls_when_elapsed(self, mock_envoy):
         mock_sample_data = mock.Mock(SampleData)
         mock_inverter_sample = mock.Mock(InverterSample)
-        mock_inverter_sample.ts = datetime.now(tz=timezone.utc)
+        mock_inverter_sample.ts = datetime.now(tz=timezone.utc) + timedelta(seconds=60)
         mock_inverter_data = {"foobar": mock_inverter_sample}
 
         mock_envoy.get_power_data.return_value = mock_sample_data
@@ -90,8 +110,8 @@ class TestSamplingEngine(unittest.TestCase):
             seconds=301
         )
 
-        # Update inverter sample timestamp to be newer than last_sample_timestamp
-        mock_inverter_sample.ts = datetime.now(tz=timezone.utc)
+        # Update inverter sample timestamp to be newer than last_sample_timestamp (second call)
+        mock_inverter_sample.ts = datetime.now(tz=timezone.utc) + timedelta(seconds=60)
 
         # Second call: inverter interval has elapsed, should poll again
         _, inverter_data = sampling_engine.collect_samples_with_retry()

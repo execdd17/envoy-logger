@@ -28,6 +28,11 @@ class PrometheusSamplingEngine(SamplingEngine):
         LOG.info(f"Listening on port {config.prometheus_listening_port}")
 
     def run(self) -> None:
+        LOG.info(
+            "Sampling started (Prometheus): power interval=%ds, inverter interval=%ds",
+            self.interval_seconds,
+            self.inverter_interval_seconds,
+        )
         while True:
             self.wait_for_next_cycle()
 

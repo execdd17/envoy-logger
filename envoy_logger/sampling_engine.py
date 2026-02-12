@@ -1,4 +1,5 @@
 import logging
+import ssl
 import sys
 import time
 from abc import ABC, abstractmethod
@@ -6,6 +7,7 @@ from datetime import datetime, timezone
 from typing import Dict, Optional
 
 from requests import ConnectTimeout, ReadTimeout
+from requests.exceptions import RequestException
 
 from envoy_logger.envoy import Envoy
 from envoy_logger.model import InverterSample, SampleData, filter_new_inverter_data
@@ -61,31 +63,57 @@ class SamplingEngine(ABC):
     def collect_samples_with_retry(
         self, retries: int = 10, wait_seconds: float = 5.0
     ) -> SampleData | Dict[str, InverterSample]:
-        for retry_loop in range(retries):
+        # Power poll (required) with retries
+        power_data = None
+        for attempt in range(retries):
             try:
                 power_data = self.get_power_data()
-
-                if self._should_poll_inverters():
-                    inverter_data = self.get_inverter_data()
-                    self.last_inverter_poll = datetime.now(tz=timezone.utc)
-                    LOG.debug(f"Sampled inverter data:\n{inverter_data}")
-                else:
-                    inverter_data = {}
-
                 self.last_sample_timestamp = datetime.now(tz=timezone.utc)
-
-                LOG.debug(f"Sampled power data:\n{power_data}")
+                if attempt > 0:
+                    LOG.info(
+                        "Power poll succeeded after %d retries",
+                        attempt + 1,
+                    )
+                break
             except (ReadTimeout, ConnectTimeout):
-                # Envoy gets REALLY MAD if you block it's access to enphaseenergy.com using a VLAN.
-                # Its software gets hung up for some reason, and some requests will stall.
-                # Allow envoy requests to timeout (and skip this sample iteration)
-                LOG.warning("Envoy request timed out (%d/%d)", retry_loop + 1, retries)
-                time.sleep(wait_seconds)
-            else:
-                return power_data, inverter_data
+                LOG.warning(
+                    "Power poll failed (timeout), retry %d/%d",
+                    attempt + 1,
+                    retries,
+                )
+                if attempt < retries - 1:
+                    LOG.info(
+                        "Retrying power poll (attempt %d/%d)",
+                        attempt + 2,
+                        retries,
+                    )
+                    time.sleep(wait_seconds)
 
-        # If we got this far it means we've timed out, raise an exception
-        raise TimeoutError("Sample collection timed out.")
+        if power_data is None:
+            LOG.warning("Power poll failed after %d retries", retries)
+            raise TimeoutError("Power sample collection timed out.")
+
+        LOG.debug("Sampled power data:\n%s", power_data)
+
+        # Inverter poll (when due): single attempt, no retries (endpoint is unstable)
+        if not self._should_poll_inverters():
+            return power_data, {}
+
+        try:
+            inverter_data = self.get_inverter_data()
+            self.last_inverter_poll = datetime.now(tz=timezone.utc)
+            LOG.debug("Sampled inverter data:\n%s", inverter_data)
+            return power_data, inverter_data
+        except (RequestException, ssl.SSLError, OSError) as e:
+            # RequestException: timeouts, connection errors, requests SSLError, etc.
+            # ssl.SSLError: unwrapped SSL failures (e.g. server flakiness)
+            # OSError: connection reset, broken pipe, and other socket errors
+            LOG.warning(
+                "Inverter poll failed (%s): %s",
+                type(e).__name__,
+                e,
+            )
+            return power_data, {}
 
     def get_power_data(self) -> SampleData:
         return self.envoy.get_power_data()
