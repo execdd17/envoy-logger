@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "envoy-logger"
-version = "0.3.0"
+version = "1.0.0"
 description = "Scrapes data from Enphase Envoy local server and uploads to time-series databases"
 authors = ["Alex Mykyta <https://github.com/amykyta3>"]
 readme = "README.md"
@@ -9,7 +9,6 @@ readme = "README.md"
 python = "^3.10"
 appdirs = "*"
 influxdb-client = "*"
-prometheus-client = "*"
 PyYAML = "*"
 requests = "*"
 

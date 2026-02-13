@@ -32,12 +32,6 @@ influxdb:
   bucket_lr: envoy_low_rate
   # bucket: envoy_all_data
 
-# How to access Prometheus
-prometheus:
-  # Change this to an open port on the host that is running envoy-logger
-  # Then configure a scraper in prometheus.yml with the hostname and port of the host running envoy-logger
-  listening_port: 1234
-
 # Polling intervals (in seconds)
 # interval: how often to poll power data (default: 60)
 #   Community recommends no faster than once per minute for /production.json
