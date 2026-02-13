@@ -9,7 +9,7 @@ from envoy_logger import cli
 class TestCli(unittest.TestCase):
     def test_main_success(self, mock_sampling_loop, mock_enphase_energy):
         mock_sampling_loop.run.return_value = None
-        cli.main(argv=["--config", "./docs/config.yml", "--db", "influxdb"])
+        cli.main(argv=["--config", "./docs/config.yml"])
 
 
 if __name__ == "__main__":

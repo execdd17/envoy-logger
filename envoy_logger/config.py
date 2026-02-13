@@ -10,7 +10,7 @@ LOG = logging.getLogger("config")
 
 
 class Config:
-    def __init__(self, data: Dict[str, Any], database: str) -> None:
+    def __init__(self, data: Dict[str, Any]) -> None:
         try:
             self.enphase_email: str = os.environ.get(
                 "ENPHASE_EMAIL", data["enphaseenergy"]["email"]
@@ -23,21 +23,11 @@ class Config:
             self.envoy_url: str = data["envoy"].get("url", "https://envoy.local")
             self.source_tag: str = data["envoy"].get("tag", "envoy")
 
-            match database:
-                case "influxdb":
-                    self.influxdb_url: str = data["influxdb"]["url"]
-                    self.influxdb_token: str = os.environ.get(
-                        "INFLUXDB_TOKEN", data["influxdb"]["token"]
-                    )
-                    self.influxdb_org: str = data["influxdb"].get("org", "home")
-                case "prometheus":
-                    self.prometheus_listening_port: int = data["prometheus"][
-                        "listening_port"
-                    ]
-                case _:
-                    raise NotImplementedError(
-                        f"Database backend not yet implemented: {database}"
-                    )
+            self.influxdb_url: str = data["influxdb"]["url"]
+            self.influxdb_token: str = os.environ.get(
+                "INFLUXDB_TOKEN", data["influxdb"]["token"]
+            )
+            self.influxdb_org: str = data["influxdb"].get("org", "home")
 
             bucket: Optional[str] = data["influxdb"].get("bucket", None)
             bucket_lr: Optional[str] = data["influxdb"].get("bucket_lr", None)
@@ -86,10 +76,10 @@ class InverterConfig:
             p.tag(k, v)
 
 
-def load_config(path: str, database: str):
-    LOG.info("Loading config %s for %s database", path, database)
+def load_config(path: str) -> Config:
+    LOG.info("Loading config %s", path)
 
     with open(path, "r", encoding="utf-8") as f:
         data = yaml.load(f.read(), Loader=yaml.FullLoader)
 
-    return Config(data, database)
+    return Config(data)
