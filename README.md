@@ -17,6 +17,32 @@ Log solar production from an Enphase Envoy locally and feed it into InfluxDB.
 
 You can then visualize data in Grafana (or any client that talks to InfluxDB).
 
+### Data flow
+
+Power and inverter data are collected and written on two independent threads; neither blocks the other.
+
+```mermaid
+flowchart LR
+  subgraph power [Power thread]
+    P_fetch[Envoy production.json]
+    P_hr[Write power points to bucket_hr]
+    P_day[If new day: power-only Flux and write bucket_lr]
+    P_fetch --> P_hr --> P_day
+  end
+  subgraph inverter [Inverter thread]
+    I_fetch[Envoy inverters API]
+    I_hr[Write inverter points to bucket_hr]
+    I_day[If new day: inverter-only Flux and write bucket_lr]
+    I_fetch --> I_hr --> I_day
+  end
+  bucket_hr[(bucket_hr)]
+  bucket_lr[(bucket_lr)]
+  P_hr --> bucket_hr
+  I_hr --> bucket_hr
+  P_day --> bucket_lr
+  I_day --> bucket_lr
+```
+
 ## Screenshots
 
 **Dashboard (live):**\

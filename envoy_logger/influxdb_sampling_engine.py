@@ -51,6 +51,17 @@ class InfluxdbSamplingEngine(SamplingEngine):
         power_thread.join()
         inverter_thread.join()
 
+    def _sample_timestamp(self, sample_data: SampleData) -> datetime:
+        """Return a timestamp from the first available power line sample, or now."""
+        for eim in (
+            sample_data.total_production,
+            sample_data.total_consumption,
+            sample_data.net_consumption,
+        ):
+            if eim is not None and eim.eim_line_samples:
+                return eim.eim_line_samples[0].ts
+        return datetime.now(tz=timezone.utc)
+
     def _power_loop(self) -> None:
         while True:
             self.wait_for_next_cycle(self.interval_seconds)
@@ -62,7 +73,8 @@ class InfluxdbSamplingEngine(SamplingEngine):
                     self.influxdb_write_api.write(
                         bucket=self.config.influxdb_bucket_hr, record=points
                     )
-                self._power_day_rollover(power_data.ts)
+                ts = self._sample_timestamp(power_data)
+                self._power_day_rollover(ts)
             except (
                 ssl.SSLError,
                 requests.exceptions.SSLError,
