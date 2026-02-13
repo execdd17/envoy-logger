@@ -1,16 +1,19 @@
 import logging
-import ssl
 import threading
 from datetime import date, datetime, timezone
 from typing import Dict, List, Optional
 
-import requests
 from influxdb_client import InfluxDBClient, Point, WritePrecision
 from influxdb_client.client.write_api import SYNCHRONOUS
 
 from envoy_logger.config import Config
 from envoy_logger.envoy import Envoy
-from envoy_logger.model import InverterSample, PowerSample, SampleData, filter_new_inverter_data
+from envoy_logger.model import (
+    InverterSample,
+    PowerSample,
+    SampleData,
+    filter_new_inverter_data,
+)
 from envoy_logger.sampling_engine import SamplingEngine
 
 LOG = logging.getLogger("influxdb_sampling_engine")
@@ -75,13 +78,7 @@ class InfluxdbSamplingEngine(SamplingEngine):
                     )
                 ts = self._sample_timestamp(power_data)
                 self._power_day_rollover(ts)
-            except (
-                ssl.SSLError,
-                requests.exceptions.SSLError,
-                requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout,
-                OSError,
-            ) as e:
+            except Exception as e:
                 LOG.warning(
                     "Power poll failed (%s): %s. Skipping this cycle.",
                     type(e).__name__,
@@ -103,22 +100,20 @@ class InfluxdbSamplingEngine(SamplingEngine):
                         bucket=self.config.influxdb_bucket_hr, record=points
                     )
                 self._inverter_day_rollover()
-            except (
-                ssl.SSLError,
-                requests.exceptions.SSLError,
-                requests.exceptions.ConnectionError,
-                requests.exceptions.Timeout,
-                OSError,
-            ) as e:
+            except Exception as e:
                 LOG.warning(
-                    "Inverter poll failed (%s): %s. Skipping this cycle.",
+                    "Inverter poll failed (%s): %s. Skipping this cycle (no write).",
                     type(e).__name__,
                     e,
                 )
 
     def _query_last_inverter_timestamp(self) -> Optional[datetime]:
-        """Query bucket_hr for the latest inverter write time; used to avoid writing duplicates."""
-        query = f'''
+        """
+        Query bucket_hr for the latest inverter write time; used to avoid writing duplicates.
+        Returns None only when the query succeeds and there are no inverter points yet (e.g. first run).
+        Raises on query failure so the caller can skip the write and avoid duplicates.
+        """
+        query = f"""
         from(bucket: "{self.config.influxdb_bucket_hr}")
             |> range(start: -30d)
             |> filter(fn: (r) => r["source"] == "{self.config.source_tag}")
@@ -126,18 +121,14 @@ class InfluxdbSamplingEngine(SamplingEngine):
             |> group()
             |> max(column: "_time")
             |> yield(name: "max")
-        '''
-        try:
-            result = self.influxdb_query_api.query(query=query)
-            for table in result:
-                for record in table.records:
-                    t = record.get_time()
-                    if t is not None:
-                        return t
-            return None
-        except Exception as e:
-            LOG.warning("InfluxDB query for last inverter timestamp failed: %s", e)
-            return None
+        """
+        result = self.influxdb_query_api.query(query=query)
+        for table in result:
+            for record in table.records:
+                t = record.get_time()
+                if t is not None:
+                    return t
+        return None
 
     def _power_high_rate_points(self, sample_data: SampleData) -> List[Point]:
         points = []
@@ -188,7 +179,7 @@ class InfluxdbSamplingEngine(SamplingEngine):
 
     def _compute_power_daily_Wh_points(self, ts: datetime) -> List[Point]:
         """Flux query for power line series only (exclude inverter); build daily Wh points."""
-        query = f'''
+        query = f"""
         from(bucket: "{self.config.influxdb_bucket_hr}")
             |> range(start: -24h, stop: 0h)
             |> filter(fn: (r) => r["source"] == "{self.config.source_tag}")
@@ -197,7 +188,7 @@ class InfluxdbSamplingEngine(SamplingEngine):
             |> integral(unit: 1h)
             |> keep(columns: ["_value", "line-idx", "measurement-type"])
             |> yield(name: "total")
-        '''
+        """
         result = self.influxdb_query_api.query(query=query)
         points = []
         for table in result:
@@ -216,7 +207,7 @@ class InfluxdbSamplingEngine(SamplingEngine):
 
     def _compute_inverter_daily_Wh_points(self, ts: datetime) -> List[Point]:
         """Flux query for inverter series only; build daily Wh points and 0 Wh for unreported."""
-        query = f'''
+        query = f"""
         from(bucket: "{self.config.influxdb_bucket_hr}")
             |> range(start: -24h, stop: 0h)
             |> filter(fn: (r) => r["source"] == "{self.config.source_tag}")
@@ -225,7 +216,7 @@ class InfluxdbSamplingEngine(SamplingEngine):
             |> integral(unit: 1h)
             |> keep(columns: ["_value", "serial", "measurement-type"])
             |> yield(name: "total")
-        '''
+        """
         result = self.influxdb_query_api.query(query=query)
         unreported_inverters = set(self.config.inverters.keys())
         points = []
